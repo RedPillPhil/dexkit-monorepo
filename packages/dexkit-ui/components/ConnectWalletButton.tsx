@@ -1,49 +1,60 @@
-import { useWeb3React } from "@dexkit/wallet-connectors/hooks/useWeb3React";
+import {
+  appMetadata,
+  client,
+  wallets,
+} from "@dexkit/wallet-connectors/thirdweb/client";
+
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import { FormattedMessage } from "react-intl";
-import { useConnectWalletDialog } from "../hooks";
+import { AutoConnect, useIsAutoConnecting } from "thirdweb/react";
+import { useWalletConnect } from "../hooks/wallet";
 import WalletIcon from "./icons/Wallet";
 
 export function ConnectWalletButton() {
-  const { isActivating } = useWeb3React();
+  const isAutoConnecting = useIsAutoConnecting();
 
-  const connectWalletDialog = useConnectWalletDialog();
+  const { connectWallet, isConnecting } = useWalletConnect();
 
-  const handleOpenConnectWalletDialog = () => {
-    connectWalletDialog.setOpen(true);
-  };
   return (
-    <Button
-      variant="outlined"
-      color="inherit"
-      onClick={handleOpenConnectWalletDialog}
-      startIcon={
-        isActivating ? (
-          <CircularProgress
-            color="inherit"
-            sx={{ fontSize: (theme) => theme.spacing(2) }}
+    <>
+      <AutoConnect
+        wallets={wallets}
+        client={client}
+        appMetadata={appMetadata}
+      />
+
+      <Button
+        variant="outlined"
+        color="inherit"
+        onClick={connectWallet}
+        startIcon={
+          isConnecting || isAutoConnecting ? (
+            <CircularProgress
+              color="inherit"
+              sx={{ fontSize: (theme) => theme.spacing(2) }}
+            />
+          ) : (
+            <WalletIcon />
+          )
+        }
+        endIcon={<ChevronRightIcon />}
+      >
+        {isConnecting || isAutoConnecting ? (
+          <FormattedMessage
+            id="loading.wallet"
+            defaultMessage="Loading Wallet"
+            description="Loading wallet button"
           />
         ) : (
-          <WalletIcon />
-        )
-      }
-      endIcon={<ChevronRightIcon />}
-    >
-      {isActivating ? (
-        <FormattedMessage
-          id="loading.wallet"
-          defaultMessage="Loading Wallet"
-          description="Loading wallet button"
-        />
-      ) : (
-        <FormattedMessage
-          id="connect.wallet"
-          defaultMessage="Connect Wallet"
-          description="Connect wallet button"
-        />
-      )}
-    </Button>
+          <FormattedMessage
+            id="connect.wallet"
+            defaultMessage="Connect Wallet"
+            description="Connect wallet button"
+          />
+        )}
+      </Button>
+    </>
   );
 }

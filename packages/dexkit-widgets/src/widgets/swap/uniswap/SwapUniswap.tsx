@@ -17,11 +17,14 @@ import { ChainId } from "@dexkit/core/constants/enums";
 import { NETWORKS } from "@dexkit/core/constants/networks";
 import { useIsMobile } from "@dexkit/core/hooks";
 import { Token } from "@dexkit/core/types";
+import { ConnectButton } from "@dexkit/ui/components/ConnectButton";
 import { SwitchNetworkButton } from "@dexkit/ui/components/SwitchNetworkButton";
-import { ZeroExQuoteResponse } from "@dexkit/ui/modules/swap/types";
+import {
+  ZeroExGaslessQuoteResponse,
+  ZeroExQuoteResponse,
+} from "@dexkit/ui/modules/swap/types";
 import { CreditCard } from "@mui/icons-material";
 import SettingsIcon from "@mui/icons-material/Settings";
-import WalletIcon from "@mui/icons-material/Wallet";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { AppNotificationsBadge } from "../../../components/AppNotificationBadge";
 import TransakIcon from "../../../components/icons/TransakIcon";
@@ -36,8 +39,7 @@ export interface SwapProps {
   disabled?: boolean;
   quoteFor?: SwapSide;
   quoteQuery?: UseQueryResult<
-    [string, ZeroExQuoteResponse | null] | undefined,
-    any
+    ZeroExGaslessQuoteResponse | ZeroExQuoteResponse | unknown
   >;
   provider?: providers.Web3Provider | providers.BaseProvider;
   account?: string;
@@ -54,7 +56,7 @@ export interface SwapProps {
   sellAmount: BigNumber;
   buyAmount: BigNumber;
   execType?: ExecType;
-  quote?: ZeroExQuoteResponse | null;
+  quote?: ZeroExGaslessQuoteResponse | ZeroExQuoteResponse | null;
   isExecuting: boolean;
   clickOnMax: boolean;
   sellTokenBalance?: BigNumber;
@@ -71,7 +73,6 @@ export interface SwapProps {
   onSwapTokens: () => void;
   onChangeSellAmount: (value: BigNumber, clickOnMax?: boolean) => void;
   onChangeBuyAmount: (value: BigNumber, clickOnMax?: boolean) => void;
-  onConnectWallet: () => void;
   onChangeNetwork: (chanId: ChainId) => void;
   onToggleChangeNetwork: () => void;
   onShowSettings: () => void;
@@ -80,6 +81,7 @@ export interface SwapProps {
   onShowTransak?: () => void;
 }
 
+import { useWalletConnect } from "@dexkit/ui/hooks/wallet";
 import { useExecButtonMessage } from "../hooks/useExecButtonMessage";
 import SwapFeeSummaryUniswap from "./SwapFeeSummaryUniswap";
 import SwapSwitchTokensUniswapButton from "./SwapSwitchTokensUniswapButton";
@@ -117,7 +119,6 @@ export default function SwapUniswap({
   onSwapTokens,
   onChangeSellAmount,
   onChangeBuyAmount,
-  onConnectWallet,
   onChangeNetwork,
   onShowSettings,
   onShowTransactions,
@@ -126,6 +127,7 @@ export default function SwapUniswap({
   onShowTransak,
   onToggleChangeNetwork,
 }: SwapProps) {
+  const { connectWallet } = useWalletConnect();
   const handleSelectSellToken = (token?: Token) => {
     onSelectToken("sell", token);
   };
@@ -304,10 +306,10 @@ export default function SwapUniswap({
                     insufficientBalance ||
                     disabled ||
                     quoteQuery?.isError ||
-                    quoteQuery?.isLoading
+                    quoteQuery?.isFetching
                   }
                   startIcon={
-                    isExecuting || quoteQuery?.isLoading ? (
+                    isExecuting || quoteQuery?.isFetching ? (
                       <CircularProgress color="inherit" size="1rem" />
                     ) : undefined
                   }
@@ -316,18 +318,7 @@ export default function SwapUniswap({
                 </Button>
               )
             ) : (
-              <Button
-                onClick={onConnectWallet}
-                startIcon={<WalletIcon />}
-                variant="contained"
-                color="primary"
-                size="large"
-              >
-                <FormattedMessage
-                  id="connect.wallet"
-                  defaultMessage="Connect Wallet"
-                />
-              </Button>
+              <ConnectButton variant="contained" color="primary" size="large" />
             )}
           </Stack>
         </Box>

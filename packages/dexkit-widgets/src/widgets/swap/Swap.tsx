@@ -1,3 +1,16 @@
+import { ChainId } from "@dexkit/core/constants/enums";
+import { NETWORKS } from "@dexkit/core/constants/networks";
+import { useIsMobile } from "@dexkit/core/hooks";
+import { Token } from "@dexkit/core/types";
+import { ConnectButton } from "@dexkit/ui/components/ConnectButton";
+import { SwitchNetworkButton } from "@dexkit/ui/components/SwitchNetworkButton";
+import { useWalletConnect } from "@dexkit/ui/hooks/wallet";
+import {
+  ZeroExGaslessQuoteResponse,
+  ZeroExQuoteResponse,
+} from "@dexkit/ui/modules/swap/types";
+import { CreditCard } from "@mui/icons-material";
+import SettingsIcon from "@mui/icons-material/Settings";
 import {
   Alert,
   Avatar,
@@ -12,29 +25,18 @@ import {
   Typography,
 } from "@mui/material";
 import { Stack } from "@mui/system";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { BigNumber, providers } from "ethers";
 import { FormattedMessage } from "react-intl";
-import SwapTokenField from "./SwapCurrencyField";
-import SwapSwitchTokensButton from "./SwapSwitchTokensButton";
-import { ExecType, SwapSide } from "./types";
-
-import { ChainId } from "@dexkit/core/constants/enums";
-import { NETWORKS } from "@dexkit/core/constants/networks";
-import { useIsMobile } from "@dexkit/core/hooks";
-import { Token } from "@dexkit/core/types";
-import { SwitchNetworkButton } from "@dexkit/ui/components/SwitchNetworkButton";
-import { ZeroExQuoteResponse } from "@dexkit/ui/modules/swap/types";
-import { CreditCard } from "@mui/icons-material";
-import SettingsIcon from "@mui/icons-material/Settings";
-import WalletIcon from "@mui/icons-material/Wallet";
-import type { UseQueryResult } from "@tanstack/react-query";
 import { AppNotificationsBadge } from "../../components/AppNotificationBadge";
 import SwitchNetworkSelect from "../../components/SwitchNetworkSelect";
 import TransakIcon from "../../components/icons/TransakIcon";
+import SwapTokenField from "./SwapCurrencyField";
 import SwapFeeSummary from "./SwapFeeSummary";
+import SwapSwitchTokensButton from "./SwapSwitchTokensButton";
 import { SUPPORTED_SWAP_CHAIN_IDS } from "./constants/supportedChainIds";
 import { useExecButtonMessage } from "./hooks/useExecButtonMessage";
-
+import { ExecType, SwapSide } from "./types";
 // @ts-ignore
 
 export interface SwapProps {
@@ -43,8 +45,7 @@ export interface SwapProps {
   disabled?: boolean;
   quoteFor?: SwapSide;
   quoteQuery?: UseQueryResult<
-    [string, ZeroExQuoteResponse | null] | undefined,
-    any
+    ZeroExGaslessQuoteResponse | ZeroExQuoteResponse | unknown
   >;
   provider?: providers.Web3Provider | providers.BaseProvider;
   account?: string;
@@ -57,7 +58,7 @@ export interface SwapProps {
   sellAmount: BigNumber;
   buyAmount: BigNumber;
   execType?: ExecType;
-  quote?: ZeroExQuoteResponse | null;
+  quote?: ZeroExGaslessQuoteResponse | ZeroExQuoteResponse | null;
   isExecuting: boolean;
   clickOnMax: boolean;
   sellTokenBalance?: BigNumber;
@@ -74,7 +75,6 @@ export interface SwapProps {
   onSwapTokens: () => void;
   onChangeSellAmount: (value: BigNumber, clickOnMax?: boolean) => void;
   onChangeBuyAmount: (value: BigNumber, clickOnMax?: boolean) => void;
-  onConnectWallet: () => void;
   onChangeNetwork: (chanId: ChainId) => void;
   onToggleChangeNetwork: () => void;
   onShowSettings: () => void;
@@ -112,7 +112,6 @@ export default function Swap({
   onSwapTokens,
   onChangeSellAmount,
   onChangeBuyAmount,
-  onConnectWallet,
   onChangeNetwork,
   onShowSettings,
   onShowTransactions,
@@ -121,7 +120,8 @@ export default function Swap({
   onShowTransak,
   onToggleChangeNetwork,
 }: SwapProps) {
-  const handleSelectSellToken = (token?: Token) => {
+  const { connectWallet } = useWalletConnect();
+  const handleSelectSellToken = (token?: Token, clickOnMax?: boolean) => {
     onSelectToken("sell", token);
   };
 
@@ -234,6 +234,11 @@ export default function Swap({
               InputBaseProps={{ fullWidth: true }}
               onChange={onChangeSellAmount}
               onSelectToken={handleSelectSellToken}
+              onInputClick={() => {
+                if (!sellToken) {
+                  handleSelectSellToken();
+                }
+              }}
               token={sellToken}
               value={sellAmount}
               balance={sellTokenBalance}
@@ -243,7 +248,7 @@ export default function Swap({
             />
             <Stack alignItems="center">
               <Box
-                sx={(theme) => ({
+                sx={() => ({
                   marginTop: -2,
                   marginBottom: -2,
                 })}
@@ -257,6 +262,11 @@ export default function Swap({
               InputBaseProps={{ fullWidth: true }}
               onChange={onChangeBuyAmount}
               onSelectToken={handleSelectBuyToken}
+              onInputClick={() => {
+                if (!buyToken) {
+                  handleSelectBuyToken();
+                }
+              }}
               token={buyToken}
               value={buyAmount}
               balance={buyTokenBalance}
@@ -312,10 +322,10 @@ export default function Swap({
                   insufficientBalance ||
                   disabled ||
                   quoteQuery?.isError ||
-                  quoteQuery?.isLoading
+                  quoteQuery?.isFetching
                 }
                 startIcon={
-                  isExecuting || quoteQuery?.isLoading ? (
+                  isExecuting || quoteQuery?.isFetching ? (
                     <CircularProgress color="inherit" size="1rem" />
                   ) : undefined
                 }
@@ -324,18 +334,7 @@ export default function Swap({
               </Button>
             )
           ) : (
-            <Button
-              onClick={onConnectWallet}
-              startIcon={<WalletIcon />}
-              variant="contained"
-              color="primary"
-              size="large"
-            >
-              <FormattedMessage
-                id="connect.wallet"
-                defaultMessage="Connect Wallet"
-              />
-            </Button>
+            <ConnectButton variant="contained" color="primary" size="large" />
           )}
         </Stack>
       </CardContent>
